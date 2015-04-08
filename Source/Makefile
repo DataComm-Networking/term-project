@@ -1,7 +1,7 @@
 CXX=g++
 CPPFLAGS=-std=c++11 -g
-CLIENT_EXE=app
-SERVER_EXE=serv
+CLIENT_EXE=Soujourn
+SERVER_EXE=SoujournServer
 
 ## FILES
 
@@ -16,7 +16,8 @@ FILES_ENGINE=	AppWindow.o \
 				Engine/ProjectileManager.o \
 				Engine/Projectile.o \
 				Engine/VEntity.o \
-				Engine/EGTheSpinner.o
+				Engine/EGTheSpinner.o \
+				Engine/AttackAction.o
 
 FILES_MULTIMEDIA=	Multimedia/graphics/object/BGO.o \
 					Multimedia/graphics/object/SGO.o \
@@ -53,6 +54,10 @@ FILES_LOGIC=	Logic/Environment/Block.o \
 				Logic/MainMenuScene.o \
 				Logic/Entities/ClientGameState.o \
 				Logic/GateKeeperSource/src/GateKeeper.o \
+				Logic/GateKeeperSource/src/Minion.o \
+				Logic/GateKeeperSource/src/MiniBoss.o \
+				Logic/GateKeeperSource/src/MiniBee.o \
+				Logic/Entities/Structure.o \
 				Logic/Entities/ServerGameState.o \
 				Logic/CreditScene.o \
 				Logic/Creature.o \
@@ -68,8 +73,8 @@ FILES_NETWORK=	Network/Client.o \
 				Network/NetworkEntityMultiplexer.o \
 				Network/NetworkEntity.o
 
-FILE_CLIENT=		Client.cpp
-FILE_SERVER=		Server.cpp
+FILE_CLIENT=	Client.cpp
+FILE_SERVER=	Server.cpp
 
 ## Targets
 

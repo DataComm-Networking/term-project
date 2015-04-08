@@ -11,7 +11,7 @@ namespace GUI
 	*
 	* @revisions	2015-03-18 - Removed BGO parent from constructor
 	*
-	* @designer
+	* @designer     Lewis Scott
 	*
 	* @programmer   Jonathan Chu
 	*				Lewis Scott
@@ -38,7 +38,7 @@ namespace GUI
 	*
 	* @revisions
 	*
-	* @designer
+	* @designer     Lewis Scott
 	*
 	* @programmer   Jonathan Chu
 	*
@@ -56,10 +56,11 @@ namespace GUI
 	*
 	* @revisions
 	*
-	* @designer
+	* @designer     Lewis Scott
 	*
 	* @programmer   Jonathan Chu
 	*				Lewis Scott
+	*				Melvin Loho
 	*
 	* @return       void
 	*/
@@ -70,7 +71,7 @@ namespace GUI
 
 		if (enabled) // button enabled
 		{
-			if (getGlobalTransform().transformRect(sprite().getGlobalBounds()).contains(appWindow.getMousePositionRelativeToWindowAndView(view))) // mouse inside button
+			if (getGlobalTransform().transformRect(sprite().getLocalBounds()).contains(appWindow.getMousePositionRelativeToWindowAndView(view))) // mouse inside button
 			{
 				if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) // mouse clicking button
 				{

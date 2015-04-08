@@ -63,10 +63,58 @@ void Controller::clearEvents()
     }
 }
 
-Controller::Controller()
-{
-}
-
 Controller::~Controller()
 {
+    clearEvents();
+	entity = NULL;
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    setEntity
+--
+-- DATE:        April 7, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Calvin Rempel
+--
+-- PROGRAMMER:  Sanders Lee
+--
+-- INTERFACE:   void Controller::setEntity(Entity* e)
+-- Entity* e: entity to be associated with the controller
+--
+-- RETURNS:     nothing
+--
+-- NOTES:
+--        This function lets the controller know which entity it controls
+--
+----------------------------------------------------------------------------------------------------------------------*/
+void Controller::setEntity(Entity* e)
+{
+  entity = e;
+}
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    getEntity
+--
+-- DATE:        April 7, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Calvin Rempel
+--
+-- PROGRAMMER:  Sanders Lee
+--
+-- INTERFACE:   Entity* Controller::getEntity()
+--
+-- RETURNS:     Entity* object pointer
+--
+-- NOTES:
+--        This function returns the entity associated with this controller
+--
+----------------------------------------------------------------------------------------------------------------------*/
+Entity* Controller::getEntity()
+{
+  return entity;
 }

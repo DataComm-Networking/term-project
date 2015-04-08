@@ -7,15 +7,26 @@
 #include "../../Network/NetworkEntity.h"
 #include "../PlayerMode.h"
 #include "../PlayerLobbyChoices.h"
+#include "../Skills.h"
+#include "../ServerGameScene.h"
 #include "ServerNetworkController.h"
 
 class ServerCommand;
+class Vessel;
 
 using Networking::NetworkEntity;
 using Networking::Session;
 using Networking::Message;
 
 /**
+ * CLASS:       PlayerEntity : public NetworkEntity
+ *
+ * DESIGNER:    ???
+ *
+ * PROGRAMMER:  ???
+ *              Sanders Lee
+ *
+ * NOTES:
  * the {Player} is resides the server, and is logically mapped to the {Command}
  *   class over the network, which is on the client side.
  *
@@ -30,23 +41,37 @@ class PlayerEntity : public NetworkEntity
         virtual ~PlayerEntity();
 
         void setMode(PLAYER_MODE mode);
+        void setType(PLAYER_TYPE type); // Sets the player type - Sanders Lee
         PLAYER_MODE getMode();
+        PLAYER_TYPE getType(); // Gets the player type - Sanders Lee
 
         void setController(ServerNetworkController* controller);
         void unsetController();
         char* getNickname();
+        float getDistance(float, float, float, float);
+        void setSGameScene(ServerGameScene *ref);
+		void setVessel(Vessel *vessel);
+		Vessel *getVessel();
+		void givePoints(float points);
+		float getPoints();
+        void skillCaseHandler(Message msg);
+        void sendNotification(skill *sk);
+        void clearControllerEvents();
 
     protected:
         virtual void onUnregister(Session* session, Message msg);
         virtual void onUpdate(Message msg);
-        void clearControllerEvents();
 
     private:
         char* nickname;
+        ServerGameScene *serverRef;
         ServerNetworkController* controller;
         ServerCommand *server;
         PLAYER_MODE mode;
+        PLAYER_TYPE type;
         PlayerLobbyChoices lobbyChoices;
+		Vessel *vessel;
+		float points;
 };
 
 #endif

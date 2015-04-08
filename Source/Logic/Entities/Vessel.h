@@ -4,48 +4,75 @@
 -- PROGRAM: 4981 game project
 --
 -- FUNCTIONS:
---     Vessel( job_class jobclass, GameMap gmap, int x, int y );
---     ~Vessel();
+--	    VesselVessel( SGO& _sprite, SGO _mask, SGO _weapon, Marx::Map * gmap,
+--			float x, float y, Marx::Controller* controller, float height, float width);
+-- 	    virtual ~Vessel();
+--		virtual void onUpdate(float);
+--     	void setPosition( int x, int y );
 --
---     void setPosition( int x, int y );
+--  	void playFootstepSound();
+-- 		void playHurtSound();
+-- 		void playAttackSound();
 --
---     void resetEXP();
---     void increaseEXP( int exp );
---     int  getEXP();
---     int  getNextLevelEXP();
+-- 		void setPlayerEntity(PlayerEntity *entity);
 --
---     int  getLevel();
---     void increaseLevel();
+-- 		void setPosition( float x, float y );
+-- 		float getXPosition();
+-- 		float getYPosition();
 --
---     void resetHP();
---     void increaseHP( int hp );
---     void decreaseHP( int hp );
---     int  getHP();
---     int  getMaxHP();
+-- 		int getXSpeed();
+-- 		int getYSpeed();
+-- 		bool isMoving();
+-- 		int getDirection();
 --
---     void resetAttackPower();
---     void attackPowerUp( int attackpower );
---     void attackPowerDown( int attackpower );
---     int  getAttackPower();
---     int  getDefaultAttackPower();
+-- 		void resetEXP();
+-- 		void increaseEXP( int exp );
+-- 		int  getEXP();
+--		int  getNextLevelEXP();
+-- 		int  getLevel();
+-- 		void increaseLevel();
 --
---     void resetSpeed();
---     void speedUp( int speed );
---     void speedDown( int speed );
---     int  getSpeed();
---     int  getDefaultSpeed();
+-- 		job_class getJobClass();
 --
---     bool checkDeath();
---     void die();
+-- 		void resetHP();
+-- 		void increaseHP( int hp );
+-- 		void decreaseHP( int hp );
+-- 		int  getMaxHP();
 --
---     void move( int direction );
+-- 		void resetAttackPower();
+-- 		void attackPowerUp( int attackpower );
+-- 		void attackPowerDown( int attackpower );
+-- 		int  getAttackPower();
+-- 		int  getDefaultAttackPower();
 --
---     void normalAttack( int x, int y );
---     void useAbility( int abilityNum );
+-- 		void resetSpeed();
+-- 		void speedUp( int speed );
+-- 		void speedDown( int speed );
+-- 		int  getDefaultSpeed();
+--
+-- 		bool checkDeath();
+-- 		void die();
+--
+-- 		void move();
+-- 		void stop(int key);
+--
+-- 		void normalAttack( int x, int y );
+-- 		void useAbility( int abilityNum, int x, int y );
+--
+-- 		void setHealthBar(GUI::HealthBar* hb);
+--
+-- 		virtual int getHealth();
+-- 		virtual void setHealth(int _health);
+-- 		virtual int getSpeed();
+-- 		virtual void setSpeed(int _speed);
+-- 		virtual void setAttack(int attack);
+-- 		virtual void stopAllSounds();
+-- 		virtual Entity *getEntity();
+-- 		ENTITY_TYPES getType();
 --
 -- DATE: February 15, 2015
 --
--- REVISIONS: (Date and Description)
+-- REVISIONS: April 7, 2015 - Sanders Lee - Required functions have changed a bit
 --
 -- DESIGNER: Sanders Lee
 --
@@ -63,17 +90,36 @@
 #include "../../Engine/VEntity.h"
 #include "../../Engine/Cell.h"
 #include "../../Engine/Controller.h"
+#include "../../Engine/TileManager.h"
+#include "../../Multimedia/graphics/Animation.h"
 #include "../Creature.h"
+#include "../EntityTypes.h"
+#include "../../Multimedia/gui/HealthBar.h"
+#include <SFML/Audio.hpp>
+
 
 #define MAX_LEVEL 10;
 
 typedef char Weapon;
 typedef char Ability;
 
+class PlayerEntity;
+
 typedef enum job_class { WARRIOR, SHAMAN, HUNTER, SCOUT, TEGUH } job_class;
+
 
 class Vessel : public Marx::VEntity, public Creature
 {
+	private:
+		sf::Sound footstep;
+		sf::Sound voice;
+		//Animation *runAnim;
+		//Animation *runAnim_mask;
+		//Animation *runAnim_wep;
+		SGO shadow;
+		PlayerEntity *player;
+		GUI::HealthBar* myHealthBar;
+
 	protected:
 		job_class jobClass;
 		int currentHealth;
@@ -86,28 +132,47 @@ class Vessel : public Marx::VEntity, public Creature
 		int attackPower;
 		float xSpeed;
 		float ySpeed;
+		float xPos;
+		float yPos;
+		float myX;
+		float myY;
+		float servX;
+		float servY;
+		float attCool;
 		int direction;	//0 = right, 1 = left //why not a bool?
 		bool movingLeft;
-        bool movingRight;
+	    bool movingRight;
 		bool movingUp;
-        bool movingDown;
-		Weapon* weapon;
+	    bool movingDown;
 		Ability* abilities;	//3 abilities for each Vessel
+		SGO mask_sprite;
+		SGO atk_sprite;
+		SGO satk_sprite;
+		SGO weapon_sprite;
+		static id_resource grassWalkSound, stoneWalkSound, hurtSound, attackSound;
 		//TO DO: pointer to the game map needed in the future
 
 	public:
-		Vessel( SGO &_sprite,
-			Marx::Map * gmap,
-			float x,
-			float y,
-			Marx::Controller* controller,
-			float height,
-			float width
-			/*, job_class jobClass, Ability* abilityList*/ );
-
+        float newXSpeed;
+        float newYSpeed;
+		Vessel( SGO& _sprite, SGO _mask, SGO _weapon,
+						Marx::Map * gmap,
+						float x,
+						float y,
+						Marx::Controller* controller,
+						float height,
+						float width
+						/*, job_class jobClass, Ability* abilityList*/ );
 		//inherited methods
 		virtual ~Vessel();
-		virtual void onUpdate();
+		virtual void onUpdate(float);
+		//virtual void draw(Renderer& renderer, sf::RenderStates states) const override;
+
+		void playFootstepSound();
+		void playHurtSound();
+		void playAttackSound();
+
+		void setPlayerEntity(PlayerEntity *entity);
 
 		void setPosition( float x, float y );
 		float getXPosition();
@@ -121,7 +186,7 @@ class Vessel : public Marx::VEntity, public Creature
 		void resetEXP();
 		void increaseEXP( int exp );
 		int  getEXP();
-    int  getNextLevelEXP();
+    	int  getNextLevelEXP();
 		int  getLevel();
 		void increaseLevel();
 
@@ -130,7 +195,6 @@ class Vessel : public Marx::VEntity, public Creature
 		void resetHP();
 		void increaseHP( int hp );
 		void decreaseHP( int hp );
-		int  getHP();
 		int  getMaxHP();
 
 		void resetAttackPower();
@@ -142,7 +206,6 @@ class Vessel : public Marx::VEntity, public Creature
 		void resetSpeed();
 		void speedUp( int speed );
 		void speedDown( int speed );
-		int  getSpeed();
 		int  getDefaultSpeed();
 
 		bool checkDeath();
@@ -154,9 +217,16 @@ class Vessel : public Marx::VEntity, public Creature
 		void normalAttack( int x, int y );
 		void useAbility( int abilityNum, int x, int y );
 
-		virtual void setHealth(int health);
+		void setHealthBar(GUI::HealthBar* hb);
+
+        virtual int getHealth();
+        virtual void setHealth(int _health);
+        virtual int getSpeed();
+        virtual void setSpeed(int _speed);
 		virtual void setAttack(int attack);
+        virtual void stopAllSounds();
 		virtual Entity *getEntity();
+		ENTITY_TYPES getType();
 };
 
 #endif

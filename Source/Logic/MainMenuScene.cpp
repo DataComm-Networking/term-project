@@ -1,3 +1,23 @@
+/*------------------------------------------------------------------------------------------------------------------
+-- SOURCE FILE: MainMenuScene.cpp
+--
+-- PROGRAM: Sojourn
+--
+-- FUNCTIONS:      
+--
+-- DATE: March 30, 2015
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER:
+--
+-- PROGRAMMER:  Chris Klassen
+--
+-- NOTES:
+--        
+----------------------------------------------------------------------------------------------------------------------*/
+
+
 #include "../AppWindow.h"
 #include "../Network/Message.h"
 #include "../Network/Client.h"
@@ -16,6 +36,9 @@ using namespace Marx;
 using Networking::NetworkEntityMultiplexer;
 using Networking::Client;
 using Networking::Message;
+
+bool MainMenuScene::connectFailed;
+GameScene *MainMenuScene::gameScene = NULL;
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: MainMenuScene * MainMenuScene::getInstance()
@@ -50,7 +73,7 @@ MainMenuScene * MainMenuScene::getInstance()
 --
 -- DESIGNER: Alex Lam, Manuel Gonzales and Georgi Hristov
 --
--- PROGRAMMER: Alex Lam, Manuel Gonzales and Georgi Hristov
+-- PROGRAMMER: Alex Lam, Manuel Gonzales, Chris Klassen and Georgi Hristov
 --
 -- INTERFACE: MainMenuScene::MainMenuScene() : renderer(AppWindow::getInstance(), 48400)
 --
@@ -67,45 +90,69 @@ MainMenuScene::MainMenuScene() : renderer(AppWindow::getInstance(), 48400)
     // backgroundImg = Manager::TextureManager::store(Manager::TextureManager::load("Multimedia/Assets/button.png"));
     // background = new SGO(*Manager::TextureManager::get(backgroundImg));
 
+    connectFailed = false;
+
     client = new Client();
-    gameScene = new GameScene();
     lobbyScene = new ClientLobbyScene();
     scoreScene = new ClientScoreboardScene();
-    clientmux = new ClientMux(gameScene,lobbyScene, scoreScene);
+    clientmux = new ClientMux(lobbyScene, scoreScene);
     NetworkEntityMultiplexer::setInstance(clientmux);
 
-    backgroundImg = Manager::TextureManager::store(Manager::TextureManager::load("Assets/couch.jpg"));
-    textBackgroundImg = Manager::TextureManager::store(Manager::TextureManager::load("Assets/Menu/textBackground.png"));
-    textBackgroundBoxImg = Manager::TextureManager::store(Manager::TextureManager::load("Assets/Menu/textBackgroundBox.png"));
-    bannerImg = Manager::TextureManager::store(Manager::TextureManager::load("Assets/Menu/vessel-one.png"));
+    backgroundImg = Manager::TextureManager::store(Manager::TextureManager::load("Assets/Art/GUI/Menu/lobby.png"));
+    textBackgroundImg = Manager::TextureManager::store(Manager::TextureManager::load("Assets/Art/GUI/Menu/text-box.png"));
+    textBackgroundBoxImg = Manager::TextureManager::store(Manager::TextureManager::load("Assets/Art/GUI/Menu/text-box-outline.png"));
+    bannerImg = Manager::TextureManager::store(Manager::TextureManager::load("Assets/Art/GUI/Menu/logo.png"));
+
+    menuMsc = Manager::MusicManager::store(Manager::MusicManager::load("Assets/Music/music_intro_or_lobby.ogg"));
+
+
+    music = Manager::MusicManager::get(menuMsc);
 
     background = new SGO(*Manager::TextureManager::get(backgroundImg));
     banner = new SGO(*Manager::TextureManager::get(bannerImg));
 
-    background = new SGO(*Manager::TextureManager::get(backgroundImg));
-    background->sprite().setScale(5, 5);
+    //background = new SGO(*Manager::TextureManager::get(backgroundImg));
+    background->sprite().setScale(1, 1);
 
-    serverLbl   = new GUI::Label( background, std::string("Server:") );
-    portLbl     = new GUI::Label( background, std::string("Port:" ) );
-    nicknameLbl = new GUI::Label( background, std::string("Nickname:" ) );
-    sf::Font *arial = new sf::Font();
-    arial->loadFromFile("Assets/Fonts/arial.ttf");
+    sf::Font *font = new sf::Font();
+    font->loadFromFile("Assets/Fonts/hud.ttf");
 
     textBoxes[ SERVER_TXT ]   = new GUI::TextBox( nextTextBox, this, 16 );
     textBoxes[ SERVER_TXT ]   ->setText("localhost");
     textBoxes[ PORT_TXT ]     = new GUI::TextBox( nextTextBox, this, 4 );
-    textBoxes[ NICKNAME_TXT ] = new GUI::TextBox( nextTextBox, this, 16 );
     textBoxes[ PORT_TXT ]     ->setText("7000");
-    textBoxes[ NICKNAME_TXT ] = new GUI::TextBox( nextTextBox, this );
+    textBoxes[ NICKNAME_TXT ] = new GUI::TextBox( nextTextBox, this, 16 );
 
     curTextBox = 0;
-    textBoxes[ SERVER_TXT ]->toggleSelected(true);
-    textBoxes[ PORT_TXT ]->toggleSelected(false);
+    textBoxes[ SERVER_TXT ]  ->toggleSelected(true);
+    textBoxes[ PORT_TXT ]    ->toggleSelected(false);
     textBoxes[ NICKNAME_TXT ]->toggleSelected(false);
 
-    textBoxes[ SERVER_TXT ]->text().setFont(*arial);
-    textBoxes[ PORT_TXT ]->text().setFont(*arial);
-    textBoxes[ NICKNAME_TXT ]->text().setFont(*arial);
+    textBoxes[ SERVER_TXT ]->text().setFont(*font);
+    textBoxes[ PORT_TXT ]->text().setFont(*font);
+    textBoxes[ NICKNAME_TXT ]->text().setFont(*font);
+
+    serverLbl   = new GUI::Label( background, std::string("SERVER:") );
+    portLbl     = new GUI::Label( background, std::string("PORT:") );
+    nicknameLbl = new GUI::Label( background, std::string("NAME:") );
+
+    serverLbl     ->text().setFont(*font);
+    portLbl       ->text().setFont(*font);
+    nicknameLbl   ->text().setFont(*font);
+
+    serverLbl     ->text().setScale(FONT_SCALE, FONT_SCALE);
+    portLbl       ->text().setScale(FONT_SCALE, FONT_SCALE);
+    nicknameLbl   ->text().setScale(FONT_SCALE, FONT_SCALE);
+
+    textBoxes[ SERVER_TXT ]  ->text().setScale(FONT_SCALE, FONT_SCALE);
+    textBoxes[ PORT_TXT ]    ->text().setScale(FONT_SCALE, FONT_SCALE);
+    textBoxes[ NICKNAME_TXT ]->text().setScale(FONT_SCALE, FONT_SCALE);
+
+    connectFailedText = new GUI::TextBox( NULL, this );
+    connectFailedText ->setText(connectFailErr);
+    connectFailedText ->text().setFont(*font);
+    connectFailedText ->text().setScale(FONT_SCALE, FONT_SCALE);
+
 
     /* Get texture assets */
     // as art assets are created for these, add them
@@ -155,6 +202,7 @@ MainMenuScene::~MainMenuScene()
 
     delete connectBtn;
     delete creditBtn;
+    delete name_sent;
 }
 
 /*------------------------------------------------------------------------------------------------------------------
@@ -166,7 +214,7 @@ MainMenuScene::~MainMenuScene()
 --
 -- DESIGNER: Alex Lam, Manuel Gonzales and Georgi Hristov
 --
--- PROGRAMMER: Alex Lam, Manuel Gonzales and Georgi Hristov
+-- PROGRAMMER: Alex Lam, Chris Klassen, Manuel Gonzales and Georgi Hristov
 --
 -- INTERFACE: void MainMenuScene::onLoad()
 --
@@ -179,31 +227,37 @@ MainMenuScene::~MainMenuScene()
 void MainMenuScene::onLoad()
 {
     /* Set button positions */
-    banner->sprite().setPosition(SCN_WIDTH/2 - BANNER_W/2, SCN_HEIGHT/10);
+    banner->sprite().setPosition(SCN_WIDTH / 2 - BANNER_W / 2 - 80, SCN_HEIGHT / 3 + 4);
+
+    background->sprite().setPosition(SCN_WIDTH / 3, SCN_HEIGHT / 3 - 188);
 
     serverTextBackground  ->sprite().setPosition(textw, text1_h);
     portTextBackground    ->sprite().setPosition(textw, text2_h);
     nicknameTextBackground->sprite().setPosition(textw, text3_h);
 
-    serverTextBackgroundBox->sprite().setPosition(text_b_w, text1_b_h);
-    portTextBackgroundBox->sprite().setPosition(text_b_w, text2_b_h);
-    nicknameTextBackgroundBox->sprite().setPosition(text_b_w, text3_b_h);
+    serverTextBackgroundBox->sprite().setPosition(text_b_w + 2, text1_b_h);
+    portTextBackgroundBox->sprite().setPosition(text_b_w + 2, text2_b_h);
+    nicknameTextBackgroundBox->sprite().setPosition(text_b_w + 2, text3_b_h);
 
-    serverLbl             ->text().setPosition(0, 0);
-    portLbl               ->text().setPosition(0, 0);
-    nicknameLbl           ->text().setPosition(0, 0);
+    serverLbl   ->text().setPosition((textw / 2 - TEXT_BOX_W/4)* 1.2, (text1_h / 2)* 1.19);
+    portLbl     ->text().setPosition((textw / 2 - TEXT_BOX_W/4)* 1.2 + 9, (text2_h / 2)* 1.19);
+    nicknameLbl ->text().setPosition((textw / 2 - TEXT_BOX_W/4)* 1.2 + 8, (text3_h / 2)* 1.19);
 
-    textBoxes[ SERVER_TXT ]   ->text().setPosition(textw/2+5, text1_h/2 - 3);
-    textBoxes[ PORT_TXT ]     ->text().setPosition(textw/2+5, text2_h/2 - 3);
-    textBoxes[ NICKNAME_TXT ] ->text().setPosition(textw/2+5, text3_h/2 - 3);
+    textBoxes[ SERVER_TXT ]   ->text().setPosition((textw / 2 + 5)* 1.175, (text1_h / 2)* 1.19);
+    textBoxes[ PORT_TXT ]     ->text().setPosition((textw / 2 + 5)* 1.175, (text2_h / 2)* 1.19);
+    textBoxes[ NICKNAME_TXT ] ->text().setPosition((textw / 2 + 5)* 1.175, (text3_h / 2)* 1.19);
 
-    connectBtn->sprite().setPosition(SCN_WIDTH/2 - CLASS_BTN_WIDTH * 1.5, SCN_HEIGHT*.75);
-    creditBtn->sprite().setPosition(SCN_WIDTH/2 + CLASS_BTN_WIDTH/2, SCN_HEIGHT*.75);
+    connectFailedText         ->text().setPosition((textw / 2 + 5)* FONT_OFFSET, (text3_h/3)* 1.19);
+
+    connectBtn->sprite().setPosition(SCN_WIDTH/2 - CLASS_BTN_WIDTH / 2 - CLASS_BTN_WIDTH + 120, SCN_HEIGHT/3 + 90 + (TEXT_BOX_H + 2)*4);
+    creditBtn ->sprite().setPosition(SCN_WIDTH/2 + CLASS_BTN_WIDTH / 2 - CLASS_BTN_WIDTH/2 + 120, SCN_HEIGHT/3 + 90 + (TEXT_BOX_H + 2)*4);
 
     curTextBox = 0;
     textBoxes[ SERVER_TXT ]->toggleSelected(true);
     textBoxes[ PORT_TXT ]->toggleSelected(false);
     textBoxes[ NICKNAME_TXT ]->toggleSelected(false);
+
+    music->play();
 
     /* Set the active view */
     updateMainView(viewMain);
@@ -254,6 +308,12 @@ void MainMenuScene::update(sf::Time t)
 void MainMenuScene::processEvents(sf::Event& e)
 {
     Scene::processEvents(e);
+
+    if (e.type == sf::Event::Closed)
+    {
+        AppWindow::getInstance().close();
+    }
+
     textBoxes[ curTextBox ]->process(e);
 }
 
@@ -264,9 +324,9 @@ void MainMenuScene::processEvents(sf::Event& e)
 --
 -- REVISIONS: (Date and Description)
 --
--- DESIGNER: Alex Lam, Manuel Gonzales and Georgi Hristov
+-- DESIGNER: Alex Lam, Chris Klassen, Manuel Gonzales and Georgi Hristov
 --
--- PROGRAMMER: Alex Lam, Manuel Gonzales and Georgi Hristov
+-- PROGRAMMER: Alex Lam, Chris Klassen, Manuel Gonzales and Georgi Hristov
 --
 -- INTERFACE: void MainMenuScene::draw()
 --
@@ -280,19 +340,19 @@ void MainMenuScene::draw()
 {
     AppWindow& window = AppWindow::getInstance();
 
-    window.clear(sf::Color::Blue);
+    window.clear();
 
     window.setView(viewMain);
 
     renderer.begin();
 
-    renderer.draw( background, true );
+    renderer.draw( background );
 
     // draw the objects
-    renderer.draw(*banner);
-    renderer.draw(*serverTextBackground);
-    renderer.draw(*portTextBackground);
-    renderer.draw(*nicknameTextBackground);
+    renderer.draw(banner);
+    renderer.draw(serverTextBackground);
+    renderer.draw(portTextBackground);
+    renderer.draw(nicknameTextBackground);
 
     renderer.draw( serverLbl );
     renderer.draw( portLbl );
@@ -300,17 +360,21 @@ void MainMenuScene::draw()
 
     if(textBoxes[SERVER_TXT]->getSelected())
     {
-      renderer.draw(*serverTextBackgroundBox);
+      renderer.draw(serverTextBackgroundBox);
     }
     if(textBoxes[PORT_TXT]->getSelected())
     {
-      renderer.draw(*portTextBackgroundBox);
+      renderer.draw(portTextBackgroundBox);
     }
     if(textBoxes[NICKNAME_TXT]->getSelected())
     {
-      renderer.draw(*nicknameTextBackgroundBox);
+      renderer.draw(nicknameTextBackgroundBox);
     }
 
+    if(connectFailed)
+    {
+      renderer.draw(connectFailedText);
+    }
 
     for( int i = 0; i < TEXT_BOXES; ++i )
         renderer.draw( textBoxes[ i ] );
@@ -352,26 +416,30 @@ void MainMenuScene::onClick()
     if(port != 0 && 1) //TODO: add check for address filled in
     {
       char* nickname_text = (char *)MainMenuScene::getInstance()->textBoxes[ NICKNAME_TXT ]->getText().c_str();
+      if (strlen(nickname_text) == 0)
+      {
+         connectFailed = true;
+         return;
+      }
 
       MainMenuScene::getInstance()->clientmux->message.type = (int)PlayerCommandMsgType::SERVER_SELECTED_NICKNAME;
       MainMenuScene::getInstance()->clientmux->message.len = strlen(nickname_text);
       //clientmux->message.data = (char*)"TEST";
-      char* hello = new char[16];
-      memcpy(hello, nickname_text, strlen(nickname_text));
-      MainMenuScene::getInstance()->clientmux->message.data = hello;
+      MainMenuScene::getInstance()->name_sent = new char[16];
+      memcpy(MainMenuScene::getInstance()->name_sent, nickname_text, strlen(nickname_text) + 1);
+      MainMenuScene::getInstance()->clientmux->message.data = MainMenuScene::getInstance()->name_sent;
 
       short port = atoi( MainMenuScene::getInstance()->textBoxes[ PORT_TXT ]->getText().c_str() );
       if (MainMenuScene::getInstance()->client->connect( (char *)MainMenuScene::getInstance()->textBoxes[ SERVER_TXT ]->getText().c_str(), port) <= 0)
       {
           printf("not connected\n");
+          connectFailed = true;
           // Show Error Message
       }
       else
       {
-         printf("connected\n");  
+          printf("connected\n");
       }
-
-      delete hello;
     }
 
 }
@@ -402,8 +470,6 @@ void MainMenuScene::onClickCredit()
     AppWindow::getInstance().removeScene(1);
 
     AppWindow::getInstance().addScene(creditscene);
-
-    AppWindow::getInstance().run();
 }
 
 /*------------------------------------------------------------------------------------------------------------------
@@ -428,7 +494,57 @@ void MainMenuScene::onClickCredit()
 void MainMenuScene::updateMainView(sf::View& v)
 {
     v = AppWindow::getInstance().getCurrentView();
-    v.zoom(0.66);
+    v.zoom(0.33);
+}
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: GameScene* MainMenuScene::getGameScene()
+--
+-- DATE: April 5, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Calvin Rempel
+--
+-- PROGRAMMER: Calvin Rempel
+--
+-- INTERFACE: GameScene* MainMenuScene::getGameScene()
+--
+-- RETURNS: the active GameScene (creates a new one if none is active)
+--
+-- NOTES:
+----------------------------------------------------------------------------------------------------------------------*/
+GameScene *MainMenuScene::getGameScene()
+{
+    if (gameScene == NULL)
+    {
+        gameScene = new GameScene();
+    }
+
+    return gameScene;
+}
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: void clearGameScene()
+--
+-- DATE: April 5, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Calvin Rempel
+--
+-- PROGRAMMER: Calvin Rempel
+--
+-- INTERFACE: void clearGameScene()
+--
+-- RETURNS: void
+--
+-- NOTES: deletes the current game scene
+----------------------------------------------------------------------------------------------------------------------*/
+void MainMenuScene::clearGameScene()
+{
+    delete gameScene;
+    gameScene = NULL;
 }
 
 /*------------------------------------------------------------------------------------------------------------------

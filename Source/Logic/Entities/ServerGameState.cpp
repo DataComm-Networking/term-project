@@ -256,11 +256,36 @@ std::map<Session*, PlayerEntity*> ServerGameState::getPlayers()
 ------------------------------------------------------------------------------*/
 void ServerGameState::goToScoreboard()
 {
+
+    Player player_stats[12];
+    auto players = getPlayers();
+    int i = 0;
+
+    for(i = 0; i < 12; i++)
+    {
+        strcpy(player_stats[i].name, "");
+        player_stats[i].type = -1;
+        player_stats[i].score = 0;
+    }
+
+    i = 0;
+
+    for(auto entry = players.begin(); entry != players.end(); ++entry)
+    {
+        PlayerEntity* playerEntity = entry->second;
+        strcpy(player_stats[i].name, playerEntity->getNickname());
+        fprintf(stdout, "SERVER NICKNAME: %s\n", playerEntity->getNickname());
+        fflush(stdout);
+        player_stats[i].type = (int) playerEntity->getMode();
+        player_stats[i].score = playerEntity->getPoints();
+        i++;
+    }
+
     Message msg;
     memset(&msg,0,sizeof(msg));
     msg.type = (int)ServerGameStateClientGameStateMsgType::START_SCORE_SCENE;
-    msg.data = (void*) "GO TO SCORE";
-    msg.len = strlen((char*)msg.data);
+    msg.data = (void*) player_stats;
+    msg.len = sizeof(Player) * 12;
 
     update(msg);
 }
@@ -420,6 +445,7 @@ void ServerGameState::assignPlayerModes()
     std::map<Session*, PlayerEntity*>::iterator itr = players.begin();
     while (itr != players.end())
     {
+        PLAYER_INFO info;
         // If there are still vessels left to place, check if player should be
         // vessel
         if (vesselsRemaining > 0)
@@ -518,9 +544,46 @@ void ServerGameState::unregisterFromAllPlayers(Networking::NetworkEntity *entity
         itr++;
     }
 }
+/**
+ * @brief ServerGameState::update
+ *  This overrides NetworkEntity on update so that if a player joins after,
+ *  they can be send to a fake lobby, but are then picked up by the game the
+ *  next round.
+ *
+ * @param message
+ * message to send
+ * @author  Jeff Bayntun
+ * @designer Jeff Bayntun
+ */
+/*----------------------------------------------------------------------------------------------
+-- FUNCTION:        onConnect
+--
+-- DATE:            February 27, 2015
+--
+-- REVISIONS:       (Date and Description)
+--
+-- DESIGNER:        Jeff Bayntun
+--
+-- PROGRAMMER:      Jeff Bayntun
+--
+-- INTERFACE:       void ServerGameState::update( Message message )
 
+-- RETURNS:         void
+--
+-- NOTES:          sends a message to a specific session that they should go to the
+                    fake lobby if a game is already in progress.  A pointer to the
+                    sesssion MUST be passed as the message.data
+-----------------------------------------------------------------------------------------------*/
+void ServerGameState::update( Message message )
+{
+    if(message.type == (int)ServerGameStateClientGameStateMsgType::FAKE_LOBBY)
+    {
+        Session* session = (Session*) message.data;
+        std::set<Session*> mySet;
+        mySet.insert(session);
+        mux->update(id, mySet, message);
+        return;
+    }
+    NetworkEntity::update(message);
 
-
-
-
-
+}
